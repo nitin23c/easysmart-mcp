@@ -275,7 +275,8 @@ def _shared_bad(rows: list[dict[str, Any]]) -> dict[str, Any] | None:
     if len(best) < 3:
         return None
     counts = [n for _, n in best]
-    return {"ports": sorted(p for p, _ in best), "about": f"{min(counts)}-{max(counts)}"}
+    low, high = min(counts), max(counts)
+    return {"ports": sorted(p for p, _ in best), "about": str(low) if low == high else f"{low}-{high}"}
 
 
 def audit(ctx: Context, _args: dict) -> Any:
@@ -294,8 +295,8 @@ def audit(ctx: Context, _args: dict) -> Any:
 
         shared = _shared_bad(rows)
         if shared:
-            add("warning", f"ports {', '.join(map(str, shared['ports']))} all show about "
-                           f"{shared['about']} RX bad packets: a shared cause (a loop or broadcast storm, "
+            add("warning", f"ports {', '.join(map(str, shared['ports']))} all show "
+                           f"{'about ' if '-' in shared['about'] else ''}{shared['about']} RX bad packets: a shared cause (a loop or broadcast storm, "
                            "a power or link event, one sending device) is likelier than a bad cable on each. "
                            "Clear the counters in the web UI and check again later")
         for r in rows:

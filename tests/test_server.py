@@ -280,6 +280,8 @@ class ToolTests(Base):
                 [(1, 1000), (2, 980), (3, 1000), (4, 50), (5, 1050), (6, 0)]]
         self.assertEqual(_shared_bad(rows), {"ports": [1, 2, 3, 5], "about": "980-1050"})
         self.assertIsNone(_shared_bad(rows[:2] + rows[3:4]))
+        same = [{"port": p, "enabled": True, "rx_bad": 49} for p in (1, 2, 3)]
+        self.assertEqual(_shared_bad(same), {"ports": [1, 2, 3], "about": "49"})
 
     def test_only_get_on_allowlisted_pages(self) -> None:
         app = self.app()
