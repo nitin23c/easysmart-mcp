@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__switch__switch_info",
+      "mcp__switch__switch_ports",
+      "mcp__switch__switch_vlans",
+      "mcp__switch__switch_config",
+      "mcp__switch__switch_audit"
+    ]
+  }
+}

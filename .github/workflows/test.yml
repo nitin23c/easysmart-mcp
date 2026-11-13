@@ -1,0 +1,44 @@
+name: test
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.11", "3.12", "3.13", "3.14"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Unit tests (fake switch, no network)
+        run: PYTHONPATH=src python -m unittest -v
+      - name: Shell scripts parse
+        run: sh -n deploy/install.sh && sh -n deploy/easysmart-mcp-setup && sh -n examples/mcp-headers.sh
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build image
+        run: docker build -t easysmart-mcp:ci .
+      - name: Image starts and refuses requests without a token
+        run: |
+          docker run -d --name esm -p 8080:8080 \
+            -e SWITCH_HOST=192.0.2.10 -e SWITCH_PASSWORD=ci_only \
+            -e MCP_ALLOW_NETS=127.0.0.0/8,172.16.0.0/12 \
+            -e MCP_TOKEN=$(docker run --rm easysmart-mcp:ci --new-token) easysmart-mcp:ci
+          for i in $(seq 1 20); do docker exec esm python -I -m easysmart_mcp --healthcheck && break; sleep 1; done
+          docker exec esm python -I -m easysmart_mcp --healthcheck
+          test "$(curl -s -o /dev/null -w '%{http_code}' -X POST localhost:8080/mcp -d '{}')" = 401

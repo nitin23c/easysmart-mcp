@@ -1,0 +1,43 @@
+# easysmart-mcp with Docker Compose. Before the first start:
+#   cp env.example .env        # then set SWITCH_HOST, and optionally the rest
+#   mkdir -p secrets && chmod 700 secrets
+#   docker compose build
+#   docker run --rm easysmart-mcp:local --new-token > secrets/mcp_token
+#   (umask 077; printf 'Switch password: '; stty -echo; read -r p; stty echo; echo; printf '%s' "$p" > secrets/switch_password)
+#   chmod 644 secrets/*   # readable by the container user; the 700 folder keeps others out
+#   docker compose run --rm --no-deps easysmart-mcp --check   # logs in once, prints the model
+#   docker compose up -d
+#
+# Your own values (switch address, port labels, LAN) go in .env, which git ignores.
+services:
+  easysmart-mcp:
+    build: .
+    image: easysmart-mcp:local
+    container_name: easysmart-mcp
+    restart: unless-stopped
+    ports:
+      - "${MCP_HOST_PORT:-8080}:8080"
+    environment:
+      SWITCH_HOST: ${SWITCH_HOST:?set SWITCH_HOST in .env}
+      SWITCH_USERNAME: ${SWITCH_USERNAME:-admin}
+      SWITCH_PORT_LABELS: ${SWITCH_PORT_LABELS:-}
+      SWITCH_TIMEOUT: ${SWITCH_TIMEOUT:-10}
+      SWITCH_PASSWORD_FILE: /run/secrets/switch_password
+      MCP_TOKEN_FILE: /run/secrets/mcp_token
+      # Who may connect. Clients on your LAN keep their own address; requests from
+      # the Docker host itself arrive from the bridge network (172.16.0.0/12),
+      # or from 192.168.65.0/24 on Docker Desktop.
+      MCP_ALLOW_NETS: ${MCP_ALLOW_NETS:-127.0.0.0/8,192.168.0.0/24,172.16.0.0/12}
+    secrets:
+      - switch_password
+      - mcp_token
+    read_only: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+
+secrets:
+  switch_password:
+    file: ./secrets/switch_password
+  mcp_token:
+    file: ./secrets/mcp_token

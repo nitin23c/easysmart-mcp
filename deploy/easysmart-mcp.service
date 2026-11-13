@@ -1,0 +1,38 @@
+[Unit]
+Description=easysmart-mcp: read-only MCP server for a TP-Link Easy Smart switch
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=easysmart-mcp
+Group=easysmart-mcp
+# systemd reads this as root before dropping privileges, so it can stay 0600 root.
+EnvironmentFile=/etc/easysmart-mcp.env
+ExecStart=/opt/easysmart-mcp/venv/bin/python -I -m easysmart_mcp
+Restart=on-failure
+RestartSec=5
+
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target
